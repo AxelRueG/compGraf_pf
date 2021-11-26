@@ -114,7 +114,7 @@ void Display_cb() { // Este tiene que estar
   
   }
   
-  drawObjects(animado,malla);
+  drawObjects(animado,relleno,malla);
   glPopMatrix();
 
 #ifdef _DEBUG

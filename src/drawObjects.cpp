@@ -30,23 +30,15 @@ using namespace std;
 ///    drawSomething();
 ///  glPopMatrix();
 
+//void drawAuto(int lod) {}
 
-//void drawAuto(int lod) {
-//  
-//  /// @TODO: aplicar las transformaciones necesarias para ubicar las partes del auto como van
-//  
-//  
-//  
-//}
-
-void drawObjects(bool animado, Malla *malla) {
+void drawObjects(bool animado, bool relleno, Malla *malla) {
   
   if (animado) {
     /// @TODO: ubicar el auto en la pista
   }
   
-//  malla->Draw(true);
-  malla->Draw(false);
+  malla->Draw(relleno);
   
   if (!animado) {
     drawCube();
