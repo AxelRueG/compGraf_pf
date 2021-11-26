@@ -22,14 +22,14 @@
 Malla *malla;
 
 int
-  w=800,h=600, // tamaño de la ventana
+  w=800,h=600, // tamaï¿½o de la ventana
   boton=-1, // boton del mouse clickeado
   xclick,yclick, // x e y cuando clickeo un boton
   lod=10; // nivel de detalle (subdivisiones de lineas y superficies parametricas)
 float // luces y colores en float
   lpos[]={2,10,5,0}, // posicion luz, l[4]: 0 => direccional -- 1 => posicional
   escala=125,escala0, // escala de los objetos window/modelo pixeles/unidad
-  dist_cam=4, // distancia del ojo al origen de coordenadas en la manipulación
+  dist_cam=4, // distancia del ojo al origen de coordenadas en la manipulaciï¿½n
   eye[]={.5,.5,.5}, target[]={0,0,0}, up[]={0,0,1}, // camara, mirando hacia y vertical
   znear=1, zfar=50, //clipping planes cercano y alejado de la camara (en 5 => veo de 3 a -3)
   amy,amy0, // angulo del modelo alrededor del eje y
@@ -49,7 +49,7 @@ inline short get_modifiers() {return modifiers=(short)glutGetModifiers();}
 // temporizador:
 static int msecs=20; // milisegundos por frame
 
-// para saber qué teclas hay apretadas cuando se calcula el movimiento del auto
+// para saber quï¿½ teclas hay apretadas cuando se calcula el movimiento del auto
 static int keys[4]; // se modifica Special_cb y SpecialUp_cb, se usa en Idle_cb
 
 bool init_texture() {
@@ -90,7 +90,7 @@ void Display_cb() { // Este tiene que estar
 
   glPushMatrix();
   
-  /// @TODO: Esta luz se mueve con la camara... no debería
+  /// @TODO: Esta luz se mueve con la camara... no deberï¿½a
   glLightfv(GL_LIGHT0,GL_POSITION,lpos);  // ubica la luz
   
   if (animado) {
@@ -103,7 +103,7 @@ void Display_cb() { // Este tiene que estar
     } else {
       
       OSD << "FALTA IMPLEMENTAR EL LOOKAT PARA ESTA VISTA" << '\n';
-      /// @TODO: Ubicar correctamente la camara con gluLookAt, (y ver qué pasa con la luz cuando el auto se meuve)
+      /// @TODO: Ubicar correctamente la camara con gluLookAt, (y ver quï¿½ pasa con la luz cuando el auto se meuve)
       
     }
     
@@ -178,14 +178,14 @@ void regen() {
 //------------------------------------------------------------
 // Animacion
 
-// Cuando no hay ningún otro evento se invoca   a glutIdleFunc 
+// Cuando no hay ningï¿½n otro evento se invoca   a glutIdleFunc 
 // El "framerate" lo determina msec, a menos que la complejidad 
 // del modelo (lod) y la no aceleracion por hardware lo bajen
 void Idle_cb() {
   static int anterior=glutGet(GLUT_ELAPSED_TIME); // milisegundos desde que arranco
 
   int tiempo=glutGet(GLUT_ELAPSED_TIME), lapso=tiempo-anterior;
-  // esperar 1/60 segundos antes de pasar al próximo cuadro
+  // esperar 1/60 segundos antes de pasar al prï¿½ximo cuadro
   if (lapso<=16) { return; }
   
   anterior=tiempo;
@@ -252,7 +252,7 @@ void Motion_cb(int xm, int ym){ // drag
       vz=((up[1]*eye[0])-(up[0]*eye[1]));
     Rotate(eye[0],eye[1],eye[2],vx,vy,vz,anguloy);
     Rotate(up[0],up[1],up[2],vx,vy,vz,anguloy);
-    Normalize(eye); Normalize(up); // mata el error numérico
+    Normalize(eye); Normalize(up); // mata el error numï¿½rico
     xclick=xm; yclick=ym;
     glutPostRedisplay();
   }
@@ -440,7 +440,7 @@ void initialize() {
 // main
 int main(int argc,char** argv) {
   glutInit(&argc,argv);// inicializa glut
-  malla = new Malla("star.dat");  
+  malla = new Malla("fish.dat");  
   initialize(); // condiciones iniciales de la ventana y OpenGL
   glutMainLoop(); // entra en loop de reconocimiento de eventos
   return 0;

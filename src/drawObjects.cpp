@@ -45,7 +45,8 @@ void drawObjects(bool animado, Malla *malla) {
     /// @TODO: ubicar el auto en la pista
   }
   
-  malla->Draw(true);
+//  malla->Draw(true);
+  malla->Draw(false);
   
   if (!animado) {
     drawCube();
