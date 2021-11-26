@@ -16,10 +16,12 @@
 #include "load_texture.hpp"
 #include "OSD.hpp"
 #include "Malla.hpp"
+#include "Curva.h"
 
 //------------------------------------------------------------
 // variables globales y defaults
 Malla *malla;
+Spline curva;
 
 int
   w=800,h=600, // tama�o de la ventana
@@ -35,7 +37,7 @@ float // luces y colores en float
   amy,amy0, // angulo del modelo alrededor del eje y
   ac0=1,rc0, // angulo resp x y distancia al target de la camara al clickear
   sky_color[]={.4,.4,.8}, // color del fondo (azul)
-  back_color[]={0,.2,0,1};
+  back_color[]={0.3,.3,0.3,1};
 
 bool // variables de estado de este programa
   animado=false,    // el auto se mueve por la pista
@@ -114,7 +116,8 @@ void Display_cb() { // Este tiene que estar
   
   }
   
-  drawObjects(animado,relleno,malla);
+//  drawObjects(animado,relleno,malla);
+  drawObjects(animado,curva);
   glPopMatrix();
 
 #ifdef _DEBUG
@@ -434,13 +437,24 @@ void initialize() {
   glEnable(GL_COLOR_MATERIAL);
 
   regen(); // para que setee las matrices antes del 1er draw
+   
+
+  curva.Agregar(punto(0.7,     0.4,  0.44));
+  curva.Agregar(punto(-0.76,   0.3,  0.22));
+  curva.Agregar(punto(0.6,   -0.25, -0.85));
+  curva.Agregar(punto(-0.35,  0.92,  0.23));
+  curva.Agregar(punto(-0.81,  -0.1, -0.44));
+  curva.Agregar(punto(0.1,   -0.83,  0.27));
+  curva.Agregar(punto(0.9,   -0.11,  0.11));
+
 }
 
 //------------------------------------------------------------
 // main
 int main(int argc,char** argv) {
   glutInit(&argc,argv);// inicializa glut
-  malla = new Malla("fish.dat");  
+  malla = new Malla("cubo.dat");  
+//  malla = new Malla("fish.dat");  
   initialize(); // condiciones iniciales de la ventana y OpenGL
   glutMainLoop(); // entra en loop de reconocimiento de eventos
   return 0;

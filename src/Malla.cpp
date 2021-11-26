@@ -123,15 +123,6 @@ void Malla::Draw(bool relleno) {
     if (p[i].e.size()==0) glVertex3fv(p[i].x);
   }
   glEnd();
-  
-//  /// para dibujar solo los nodos
-//  glDisable(GL_LIGHTING);
-//  glBegin(GL_POINTS);
-//  glPointSize(10);
-//  for (i=0;i<p.size();i++) {
-//    glVertex3fv(p[i].x);
-//  }
-//  glEnd();
 }
 
 // Identifica los pares de elementos vecinos y las aristas de frontera

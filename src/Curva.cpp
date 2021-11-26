@@ -135,7 +135,7 @@ void Spline::ElevaGrado (int i) {
 }
 
 void Spline::Dibujar (int detail, bool draw_cp) {
-	glLineWidth(1); glColor4f(0,0,.5,1);
+	glLineWidth(2); glColor4f(1,1,1,1);
 	
 	glEnable(GL_MAP1_VERTEX_4);
 	for (int i=0;i<np-1;i++){
@@ -144,16 +144,16 @@ void Spline::Dibujar (int detail, bool draw_cp) {
 	}
 	
 	if (draw_cp) {
-		glPointSize(3); glColor4f(.5,0,0,.5);
+		glPointSize(5); glColor4f(.5,0,0,.5);
 		glBegin(GL_POINTS);
 			for (int i=3*np;i>=0;i--)
-				glVertex2fv(p[i].c);
+				glVertex3fv(p[i].c);
 		glEnd();
 	}
-	glPointSize(5); glColor3f(.5,0,0);
+	glPointSize(10); glColor3f(.5,0,0);
 	glBegin(GL_POINTS);
 		for (int i=0;i<np;i++)
-			glVertex2fv(p[i*3].c);
+			glVertex3fv(p[i*3].c);
 	glEnd();
 	
 //	glPointSize(4); glColor3f(0,.5,0);

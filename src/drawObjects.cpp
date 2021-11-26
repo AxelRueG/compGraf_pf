@@ -46,3 +46,30 @@ void drawObjects(bool animado, bool relleno, Malla *malla) {
   }
   
 }
+void drawObjects(bool animado) {
+  
+  if (animado) {
+    /// @TODO: ubicar el auto en la pista
+  }
+  
+  if (!animado) {
+    drawCube();
+    drawEjes();
+  }
+  
+}
+
+void drawObjects(bool animado, Spline curva) {
+  
+  if (animado) {
+    /// @TODO: ubicar el auto en la pista
+  }
+  
+  curva.Dibujar(10,true);
+  
+  if (!animado) {
+    drawCube();
+    drawEjes();
+  }
+  
+}
