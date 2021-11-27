@@ -23,6 +23,20 @@
 Malla *malla;
 Spline curva;
 
+struct PuntosDeControl {
+  float x,y,z;
+};
+
+static PuntosDeControl puntosDados[7] = {
+  {7.f,    4.f,   4.4},
+  {-7.6,   3.f,   2.2},
+  {6.f,   -2.5,  -8.5},
+  {-3.5,   9.2,   2.3},
+  {-8.1,  -1.f,  -4.4},
+  {1.f,   -8.3,   2.7},
+  {9.f,   -1.1,   1.1}
+};
+
 int
   w=800,h=600, // tama�o de la ventana
   boton=-1, // boton del mouse clickeado
@@ -54,27 +68,27 @@ static int msecs=20; // milisegundos por frame
 // para saber qu� teclas hay apretadas cuando se calcula el movimiento del auto
 static int keys[4]; // se modifica Special_cb y SpecialUp_cb, se usa en Idle_cb
 
-bool init_texture() {
-  static bool done = false, ok = false;
-  if (done) return ok; done = true;
-  
-  GLint max_texture_size=0; 
-  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-  const char *texture_file = "pista_1024.png";
-  if      (max_texture_size>=4096) texture_file = "pista_4096.png" ; 
-  else if (max_texture_size>=2048) texture_file = "pista_2048.png" ; 
-  
-  OSD << "Cargando " << texture_file << "..."; OSD.Render(w,h); glutSwapBuffers();
-  Texture tex_pista = load_texture(texture_file,true);
-  if (!tex_pista.data) return ok=false;
-  
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-  return ok = true;
-}
+//bool init_texture() {
+//  static bool done = false, ok = false;
+//  if (done) return ok; done = true;
+//  
+//  GLint max_texture_size=0; 
+//  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+//  const char *texture_file = "pista_1024.png";
+//  if      (max_texture_size>=4096) texture_file = "pista_4096.png" ; 
+//  else if (max_texture_size>=2048) texture_file = "pista_2048.png" ; 
+//  
+//  OSD << "Cargando " << texture_file << "..."; OSD.Render(w,h); glutSwapBuffers();
+//  Texture tex_pista = load_texture(texture_file,true);
+//  if (!tex_pista.data) return ok=false;
+//  
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+//  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+//  return ok = true;
+//}
 
 
 //------------------------------------------------------------
@@ -88,25 +102,22 @@ void Display_cb() { // Este tiene que estar
   glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
   glPolygonMode(GL_FRONT_AND_BACK,relleno?GL_FILL:GL_LINE);
   
-  if (animado && !init_texture()) OSD << "ERROR: NO SE PUDO CARGAR LA TEXTURA DE LA PISTA!\n\n";
+//  if (animado && !init_texture()) OSD << "ERROR: NO SE PUDO CARGAR LA TEXTURA DE LA PISTA!\n\n";
 
   glPushMatrix();
   
   /// @TODO: Esta luz se mueve con la camara... no deber�a
-  glLightfv(GL_LIGHT0,GL_POSITION,lpos);  // ubica la luz
   
   if (animado) {
     
     if (top_view) {
       
       /// @TODO: Hacer que la camara gire para que el auto siempre apunte hacia arriba
-      gluLookAt(el_auto.x,el_auto.y,15,el_auto.x,el_auto.y,0,1,0,0);
+      gluLookAt(el_pez.x,el_pez.y,el_pez.z+15,el_pez.x,el_pez.y,el_pez.z,1,0,0);
       
     } else {
-      
-      OSD << "FALTA IMPLEMENTAR EL LOOKAT PARA ESTA VISTA" << '\n';
       /// @TODO: Ubicar correctamente la camara con gluLookAt, (y ver qu� pasa con la luz cuando el auto se meuve)
-      
+      gluLookAt(el_pez.x,el_pez.y+15,el_pez.z,el_pez.x,el_pez.y,el_pez.z,0,0,1);
     }
     
   } else {
@@ -115,48 +126,51 @@ void Display_cb() { // Este tiene que estar
     gluLookAt(dist_cam*eye[0],dist_cam*eye[1],dist_cam*eye[2],0,0,0,up[0],up[1],up[2]);
   
   }
+  // ubicamos la luz para que se transforme junto al espacio
+  glLightfv(GL_LIGHT0,GL_POSITION,lpos); 
   
-//  drawObjects(animado,relleno,malla);
-  drawObjects(animado,curva);
+  /// AQUI ESTOY DIBUJANDO EL PEZ
+  drawObjects(animado,relleno,curva,malla);
+//  drawObjects(animado,curva);
   glPopMatrix();
 
-#ifdef _DEBUG
-  OSD << "el_auto {\n"
-      << "  x: " << el_auto.x << '\n'
-      << "  y: " << el_auto.y << '\n'
-      << "  vel: " << el_auto.vel << '\n'
-      << "  ang: " << el_auto.ang << '\n'
-      << "  rang1: " << el_auto.rang1 << '\n'
-      << "  rang2: " << el_auto.rang2 << '\n'
-      << "}\n";
-  OSD << "l.o.d.: " << lod<<'\n';
-//  OSD << "escala: " << escala <<'\n';
-  OSD << "vista: " << (animado?(top_view?"superior":"trasera"):"cubo") <<'\n';
-#endif
+  #ifdef _DEBUG
+    OSD << "el_pez {\n"
+        << "  x: " << el_pez.x << '\n'
+        << "  y: " << el_pez.y << '\n'
+        << "  vel: " << el_pez.z << '\n'
+        << "  ang_xy: " << el_pez.ang_xy << '\n'
+        << "  ang_xz: " << el_pez.ang_xz << '\n'
+        << "  t: " << el_pez.t << '\n'
+        << "}\n";
+    OSD << "l.o.d.: " << lod<<'\n';
+  //  OSD << "escala: " << escala <<'\n';
+    OSD << "vista: " << (animado?(top_view?"superior":"trasera"):"cubo") <<'\n';
+  #endif
   
   glColor3f(1,1,1);
   OSD.Render(w,h);
   
   glutSwapBuffers();
 
-#ifdef _DEBUG
-  // chequea errores
-  for(int errornum=glGetError();errornum!=GL_NO_ERROR;errornum=glGetError()) {
-    if(errornum==GL_INVALID_ENUM)
-      OSD << "OpenGL error: GL_INVALID_ENUM" << '\n';
-    else if(errornum==GL_INVALID_VALUE)
-      OSD << "OpenGL error: GL_INVALID_VALUE" << '\n';
-    else if (errornum==GL_INVALID_OPERATION)
-      OSD << "OpenGL error: GL_INVALID_OPERATION" << '\n';
-    else if (errornum==GL_STACK_OVERFLOW)
-      OSD << "OpenGL error: GL_STACK_OVERFLOW" << '\n';
-    else if (errornum==GL_STACK_UNDERFLOW)
-      OSD << "OpenGL error: GL_STACK_UNDERFLOW" << '\n';
-    else if (errornum==GL_OUT_OF_MEMORY)
-      OSD << "OpenGL error: GL_OUT_OF_MEMORY" << '\n';
+  #ifdef _DEBUG
+    // chequea errores
+    for(int errornum=glGetError();errornum!=GL_NO_ERROR;errornum=glGetError()) {
+      if(errornum==GL_INVALID_ENUM)
+        OSD << "OpenGL error: GL_INVALID_ENUM" << '\n';
+      else if(errornum==GL_INVALID_VALUE)
+        OSD << "OpenGL error: GL_INVALID_VALUE" << '\n';
+      else if (errornum==GL_INVALID_OPERATION)
+        OSD << "OpenGL error: GL_INVALID_OPERATION" << '\n';
+      else if (errornum==GL_STACK_OVERFLOW)
+        OSD << "OpenGL error: GL_STACK_OVERFLOW" << '\n';
+      else if (errornum==GL_STACK_UNDERFLOW)
+        OSD << "OpenGL error: GL_STACK_UNDERFLOW" << '\n';
+      else if (errornum==GL_OUT_OF_MEMORY)
+        OSD << "OpenGL error: GL_OUT_OF_MEMORY" << '\n';
+    }
+  #endif // _DEBUG
   }
-#endif // _DEBUG
-}
 
 //------------------------------------------------------------
 // Regenera la matriz de proyeccion
@@ -195,7 +209,8 @@ void Idle_cb() {
   
   float acel = (+1)*keys[0] + (-1)*keys[1];
   float dir  = (+1)*keys[2] + (-1)*keys[3];
-  el_auto.Mover(acel,dir);
+  /// tenemos aca como se mueve el pez no es del todo funcional
+  el_pez.Mover(curva);
   
   glutPostRedisplay();
 }
@@ -435,26 +450,25 @@ void initialize() {
 
   // material y textura
   glEnable(GL_COLOR_MATERIAL);
-
   regen(); // para que setee las matrices antes del 1er draw
-   
 
-  curva.Agregar(punto(0.7,     0.4,  0.44));
-  curva.Agregar(punto(-0.76,   0.3,  0.22));
-  curva.Agregar(punto(0.6,   -0.25, -0.85));
-  curva.Agregar(punto(-0.35,  0.92,  0.23));
-  curva.Agregar(punto(-0.81,  -0.1, -0.44));
-  curva.Agregar(punto(0.1,   -0.83,  0.27));
-  curva.Agregar(punto(0.9,   -0.11,  0.11));
-
+  
+  // cargo los puntos de control
+  for (PuntosDeControl p: puntosDados) 
+    curva.Agregar(punto(p.x,p.y,p.z));
+  // los primeros puntos 
+  el_pez.x = puntosDados[0].x;
+  el_pez.y = puntosDados[0].y;
+  el_pez.z = puntosDados[0].z;
+  
 }
 
 //------------------------------------------------------------
 // main
 int main(int argc,char** argv) {
   glutInit(&argc,argv);// inicializa glut
-  malla = new Malla("cubo.dat");  
-//  malla = new Malla("fish.dat");  
+//  malla = new Malla("cubo.dat");  
+  malla = new Malla("fish.dat");  
   initialize(); // condiciones iniciales de la ventana y OpenGL
   glutMainLoop(); // entra en loop de reconocimiento de eventos
   return 0;

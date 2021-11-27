@@ -155,15 +155,6 @@ void Spline::Dibujar (int detail, bool draw_cp) {
 		for (int i=0;i<np;i++)
 			glVertex3fv(p[i*3].c);
 	glEnd();
-	
-//	glPointSize(4); glColor3f(0,.5,0);
-//	glBegin(GL_POINTS);
-//		punto x,d;
-//		for (float t=0;t<=1;t+=0.025) {
-//			Evaluar(t,x,d);
-//			glVertex2fv(x.c);
-//		}
-//	glEnd();
 }
 
 float Spline::MaxT ( ) {
