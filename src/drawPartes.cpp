@@ -9,10 +9,7 @@
 #endif
 #include "drawPartes.hpp"
 
-static const float color0[] = {1,.8,.1}; // casco
-static const float color1[] = {1,.8,.65}; // chasis 1
-static const float color2[] = {1,.3,.1}; // chasis 2
-static const float color3[] = {1,.3,.1}; // alerones
+static const float color0[] = {1,.8,.1};
 
 // ctes y función auxiliar para definir propiedades del material y del modo de
 // renderizado para cada pieza
@@ -45,149 +42,6 @@ static void set_material(MaterialType type, const float color[]=color0) {
   prev_type = type;
 };
 
-void drawRueda(int lod) {
-  
-  const double DOS_PI= 8*atan(1.0);
-  static int llod=-1;
-  static double *cosv=NULL;
-  static double *sinv=NULL;
-  static double dr;
-  if (llod!=lod) {
-    llod=lod;
-    if (cosv) delete []cosv;
-    if (sinv) delete []sinv;
-    cosv=new double[lod+1];
-    sinv=new double[lod+1];
-    dr=DOS_PI/lod;
-    double r=0;
-    for (int i=0;i<=lod;i++) {
-      cosv[i]=cos(r)/2;
-      sinv[i]=sin(r)/2;
-      r+=dr;
-    }
-  }
-  
-  static float aux_color_1[] = {.1,.1,.1};
-  set_material(MT_Rubber,aux_color_1);
-  glBegin(GL_QUADS);
-    for (int i=0;i<lod;i++) {
-      //capa de afuera
-      glNormal3f(0,cosv[i],sinv[i]);
-      glVertex3f(1,cosv[i]*2,sinv[i]*2);
-      glVertex3f(-1,cosv[i]*2,sinv[i]*2);
-      glNormal3f(0,cosv[i+1],sinv[i+1]);
-      glVertex3f(-1,cosv[i+1]*2,sinv[i+1]*2);
-      glVertex3f(1,cosv[i+1]*2,sinv[i+1]*2);
-      //capa de adentro
-      glNormal3f(0,cosv[i],sinv[i]);
-      glVertex3f(1,cosv[i],sinv[i]);
-      glVertex3f(-1,cosv[i],sinv[i]);
-      glNormal3f(0,cosv[i+1],sinv[i+1]);
-      glVertex3f(-1,cosv[i+1],sinv[i+1]);
-      glVertex3f(1,cosv[i+1],sinv[i+1]);
-      
-      // tapa frente
-      glNormal3f(-1,0,0);
-      glVertex3f(-1,cosv[i]*2,sinv[i]*2);
-      glVertex3f(-1,cosv[i+1]*2,sinv[i+1]*2);
-      glVertex3f(-1,cosv[i+1],sinv[i+1]);
-      glVertex3f(-1,cosv[i],sinv[i]);
-      // tapa atras
-      glNormal3f(1,0,0);
-      glVertex3f(1,cosv[i]*2,sinv[i]*2);
-      glVertex3f(1,cosv[i+1]*2,sinv[i+1]*2);
-      glVertex3f(1,cosv[i+1],sinv[i+1]);
-      glVertex3f(1,cosv[i],sinv[i]);
-    }
-  glEnd();
-  
-  static float aux_color_2[] = {.51,.51,.51};
-  set_material(MT_Metal,aux_color_2);
-  glBegin(GL_QUADS);
-    for (int i=0;i<lod;i++) {
-      // tapa frente
-      int i2=(i+lod)%lod;
-      glVertex3f(-.7,cosv[i],sinv[i]);
-      glVertex3f(-.7,cosv[i+1],sinv[i+1]);
-      glVertex3f(-.7,-cosv[i2],-sinv[i2]);
-      glVertex3f(-.7,-cosv[i2],-sinv[i]);
-      glVertex3f(.7,cosv[i],sinv[i]);
-      glVertex3f(.7,cosv[i+1],sinv[i+1]);
-      glVertex3f(.7,-cosv[i2],-sinv[i2]);
-      glVertex3f(.7,-cosv[i2],-sinv[i]);
-    }
-  glEnd();
-}
-
-void drawChasis() {
-  set_material(MT_Metal,color1);
-  glBegin(GL_TRIANGLES);
-    glNormal3f(.4,-1,0);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(-1,-1,1);
-    glVertex3f(1,0,0);
-    
-    glNormal3f(.4,1,0);
-    glVertex3f(-1,1,-1);
-    glVertex3f(-1,1,1);
-    glVertex3f(1,0,0);
-    
-    glNormal3f(-.2,+.5,1); glVertex3f(-1,1,1);
-    glNormal3f(-.2,-.5,1); glVertex3f(-1,-1,1);
-    glNormal3f(.4,0,1);    glVertex3f(1,0,0);
-    
-    glNormal3f(.4,0,-1);
-    glVertex3f(-1,1,-1);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(1,0,0);
-  glEnd();
-  glBegin(GL_QUADS);
-    glNormal3f(-1,0,0);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(-1,1,-1);
-    glVertex3f(-1,1,1);
-    glVertex3f(-1,-1,1);
-  glEnd();
-}
-
-void drawAleron() {
-  set_material(MT_Metal,color3);
-  glBegin(GL_TRIANGLES);
-    glNormal3f(0,-1,0);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(-1,-1,1);
-    glVertex3f(1,-1,-1);
-    glNormal3f(0,1,0);
-    glVertex3f(-1,1,-1);
-    glVertex3f(-1,1,1);
-    glVertex3f(1,1,-1);
-  glEnd();
-  glBegin(GL_QUADS);
-    glNormal3f(0.3,-.3,1); glVertex3f(-1,1,1);
-    glNormal3f(0.3,+.3,1); glVertex3f(-1,-1,1);
-    glNormal3f(0.0,+.3,1); glVertex3f(1,-1,-1);
-    glNormal3f(0.0,-.3,1); glVertex3f(1,1,-1);
-    
-    glNormal3f(-1,0,0);
-    glVertex3f(-1,1,-1);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(-1,-1,1);
-    glVertex3f(-1,1,1);
-    
-    glNormal3f(0,0,-1);
-    glVertex3f(-1,1,-1);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(1,-1,-1);
-    glVertex3f(1,1,-1);
-
-  glEnd();
-}
-
-void drawCasco(int lod) {
-  set_material(MT_Metal,color0);
-  glutSolidSphere(1,lod,lod);
-}
-
 void drawEjes() {
   // ejes
   glLineWidth(4); set_material(MT_None);
@@ -202,22 +56,8 @@ void drawEjes() {
 void drawCube() {
   static float aux_color_1[] = {1,1,1};
   set_material(MT_None,aux_color_1);
-//  glBegin(GL_LINES);
-//    glVertex3f(-1,-1,-1); glVertex3f(1,-1,-1);
-//    glVertex3f(-1,-1,-1); glVertex3f(-1,1,-1);
-//    glVertex3f(-1,-1,-1); glVertex3f(-1,-1,1);
-//    glVertex3f(1,1,1); glVertex3f(1,1,-1);
-//    glVertex3f(1,1,1); glVertex3f(1,-1,1);
-//    glVertex3f(1,1,1); glVertex3f(-1,1,1);
-//    glVertex3f(-1,-1,1); glVertex3f(1,-1,1);
-//    glVertex3f(-1,-1,1); glVertex3f(-1,1,1);
-//    glVertex3f(-1,1,-1); glVertex3f(-1,1,1);
-//    glVertex3f(-1,1,-1); glVertex3f(1,1,-1);
-//    glVertex3f(1,-1,-1); glVertex3f(1,1,-1);
-//    glVertex3f(1,-1,-1); glVertex3f(1,-1,1);
-//  glEnd();
-  
-  // plano para apoyar el auto
+
+  // plano para apoyar el pez
   static float aux_color_2[] = {.5,.5,.5};
   set_material(MT_Glass,aux_color_2);
   glBegin(GL_QUADS);
@@ -225,39 +65,5 @@ void drawCube() {
     glVertex3f(-1, 1,0);
     glVertex3f( 1, 1,0);
     glVertex3f( 1,-1,0);
-  glEnd();
-}
-
-void drawToma() {    
-  set_material(MT_Metal,color2);
-  glBegin(GL_QUADS);
-    glNormal3f(0,0,-1);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(-1,1,-1);
-    glVertex3f(1,1,-1);
-    glVertex3f(.3,-.3,-1);
-    
-    glNormal3f(-.2,-.4,.7); glVertex3f(-1, -1, 1);
-    glNormal3f(-.2,  0,.7); glVertex3f(-1,  1, 1);
-    glNormal3f(+.4,  0,.7); glVertex3f( 1,  1,.3);
-    glNormal3f(+.4,-.4,.7); glVertex3f(.3,-.3,.3);
-    
-    glNormal3f(.3,-1,0);
-    glVertex3f(-1,-1,-1);
-    glVertex3f(-1,-1,1);
-    glVertex3f(.3,-.3,.3);
-    glVertex3f(.3,-.3,-1);
-  glEnd();
-}
-
-void drawPista(int w, int h) {
-  const int w_2 = w*3/2, h_2=h*3/2;
-  set_material(MT_Texture);
-  glBegin(GL_QUADS);
-    glNormal3f(0,0,1);
-    glTexCoord2d(0,3); glVertex2f(-w_2,h_2);
-    glTexCoord2d(3,3); glVertex2f(w_2,h_2);
-    glTexCoord2d(3,0); glVertex2f(w_2,-h_2);
-    glTexCoord2d(0,0); glVertex2f(-w_2,-h_2);
   glEnd();
 }

@@ -1,5 +1,3 @@
-// Transformaciones (buscar @TODO y ver consignas.pdf)
-
 #include <cmath> // atan sqrt
 #include <cstdlib> // exit
 #include <fstream> // file io
@@ -11,7 +9,7 @@
 # include <GL/gl.h>
 # include <GL/glut.h>
 #endif
-#include "Auto.hpp"
+#include "Pez.hpp"
 #include "drawObjects.hpp"
 #include "load_texture.hpp"
 #include "OSD.hpp"
@@ -22,20 +20,51 @@
 // variables globales y defaults
 Malla *malla;
 Spline curva;
+punto d; //derivada
+bool ocultar = true;
+bool pezNada = true;
+int curvaN = 1; //para saber que curva se esta mostrando
 
 struct PuntosDeControl {
-  float x,y,z;
+  float x=0,y=0,z=0;
 };
 
-static PuntosDeControl puntosDados[7] = {
-  {7.f,    4.f,   4.4},
-  {-7.6,   3.f,   2.2},
-  {6.f,   -2.5,  -8.5},
-  {-3.5,   9.2,   2.3},
-  {-8.1,  -1.f,  -4.4},
-  {1.f,   -8.3,   2.7},
-  {9.f,   -1.1,   1.1}
+static PuntosDeControl Curva1[9] = {
+	{ 10.f,   0.f},
+	{  5.f,   5.f},
+	{  0.f,  10.f},
+	{ -5.f,   5.f},
+	{-10.f,   0.f},
+	{ -5.f,  -5.f},
+	{  0.f, -10.f},
+	{  5.f,  -5.f},
+	{ 10.f,   0.f}	
 };
+static PuntosDeControl Curva2[12] = {
+	{  0.f,   0.f,  1.f},
+	{ 10.f,   0.f,  2.f},
+	{  0.f,  10.f,  3.f},
+	{-10.f,   0.f,  4.f},
+	{  0.f, -10.f,  5.f},
+	{  0.f,   0.f,  6.f},
+	{ 10.f,   0.f,  7.f},
+	{  0.f,  10.f,  8.f},
+	{-10.f,   0.f,  9.f},
+	{  0.f, -10.f, 10.f},
+	{  0.f,   0.f, 11.f},
+	{ 10.f,   0.f, 12.f}
+};
+static PuntosDeControl Curva3[8] = {
+	{ 7.f,   4.f,   4.4},
+	{-7.6,   3.f,   2.2},
+	{ 6.f,  -2.5,  -8.5},
+	{-3.5,   9.2,   2.3},
+	{-8.1,  -1.f,  -4.4},
+	{ 1.f,  -8.3,   2.7},
+	{ 9.f,  -1.1,   1.1},
+	{ 7.f,   4.f,   4.4}
+};
+
 
 int
   w=800,h=600, // tamaï¿½o de la ventana
@@ -43,7 +72,7 @@ int
   xclick,yclick, // x e y cuando clickeo un boton
   lod=10; // nivel de detalle (subdivisiones de lineas y superficies parametricas)
 float // luces y colores en float
-  lpos[]={2,10,5,0}, // posicion luz, l[4]: 0 => direccional -- 1 => posicional
+  lpos[]={2,15,10,0}, // posicion luz, l[4]: 0 => direccional -- 1 => posicional
   escala=125,escala0, // escala de los objetos window/modelo pixeles/unidad
   dist_cam=4, // distancia del ojo al origen de coordenadas en la manipulaciï¿½n
   eye[]={.5,.5,.5}, target[]={0,0,0}, up[]={0,0,1}, // camara, mirando hacia y vertical
@@ -51,7 +80,7 @@ float // luces y colores en float
   amy,amy0, // angulo del modelo alrededor del eje y
   ac0=1,rc0, // angulo resp x y distancia al target de la camara al clickear
   sky_color[]={.4,.4,.8}, // color del fondo (azul)
-  back_color[]={0.3,.3,0.3,1};
+  back_color[]={0,0.2,0.4,1};
 
 bool // variables de estado de este programa
   animado=false,    // el auto se mueve por la pista
@@ -65,31 +94,45 @@ inline short get_modifiers() {return modifiers=(short)glutGetModifiers();}
 // temporizador:
 static int msecs=20; // milisegundos por frame
 
-// para saber quï¿½ teclas hay apretadas cuando se calcula el movimiento del auto
+// para saber que teclas hay apretadas cuando se calcula el movimiento del auto
 static int keys[4]; // se modifica Special_cb y SpecialUp_cb, se usa en Idle_cb
 
-//bool init_texture() {
-//  static bool done = false, ok = false;
-//  if (done) return ok; done = true;
-//  
-//  GLint max_texture_size=0; 
-//  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
-//  const char *texture_file = "pista_1024.png";
-//  if      (max_texture_size>=4096) texture_file = "pista_4096.png" ; 
-//  else if (max_texture_size>=2048) texture_file = "pista_2048.png" ; 
-//  
-//  OSD << "Cargando " << texture_file << "..."; OSD.Render(w,h); glutSwapBuffers();
-//  Texture tex_pista = load_texture(texture_file,true);
-//  if (!tex_pista.data) return ok=false;
-//  
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-//  glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
-//  return ok = true;
-//}
 
+/// ---------------------------------------------------------------------------------
+///								    TEXTURA DE PEZ
+/// ---------------------------------------------------------------------------------
+
+GLuint texid;
+
+bool init_texture() {
+	static bool done = false, ok = false;
+	if (done) return ok; done = true;
+	
+	//GLint max_texture_size=0; 
+	//glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+	const char *texture_file = "clown2.png";
+	
+	OSD << "Cargando " << texture_file << "..."; OSD.Render(w,h); glutSwapBuffers();
+	Texture tex_pez = load_texture(texture_file,true);
+	//cout<<tex_pez.data<<endl;
+	if (!tex_pez.data) return ok=false;
+	
+	// color material
+	glColor3f(1.f,1.f,1.f);
+	
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	
+	glEnable(GL_TEXTURE_2D);
+	
+	return ok = true;
+}
+
+/// ---------------------------------------------------------------------------------
+/// ---------------------------------------------------------------------------------
 
 //------------------------------------------------------------
 // redibuja los objetos cada vez que hace un redisplay
@@ -101,38 +144,36 @@ void Display_cb() { // Este tiene que estar
   else         glClearColor(back_color[0],back_color[1],back_color[2],1);
   glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
   glPolygonMode(GL_FRONT_AND_BACK,relleno?GL_FILL:GL_LINE);
-  
+  	
 //  if (animado && !init_texture()) OSD << "ERROR: NO SE PUDO CARGAR LA TEXTURA DE LA PISTA!\n\n";
-
-  glPushMatrix();
   
-  /// @TODO: Esta luz se mueve con la camara... no deberï¿½a
+  glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
+  glPolygonMode(GL_FRONT_AND_BACK,relleno?GL_FILL:GL_LINE);
   
-  if (animado) {
-    
-    if (top_view) {
-      
-      /// @TODO: Hacer que la camara gire para que el auto siempre apunte hacia arriba
-      gluLookAt(el_pez.x,el_pez.y,el_pez.z+15,el_pez.x,el_pez.y,el_pez.z,1,0,0);
-      
-    } else {
-      /// @TODO: Ubicar correctamente la camara con gluLookAt, (y ver quï¿½ pasa con la luz cuando el auto se meuve)
-      gluLookAt(el_pez.x,el_pez.y+15,el_pez.z,el_pez.x,el_pez.y,el_pez.z,0,0,1);
-    }
-    
-  } else {
-    
-    OSD << "Presione T o R para correr" << '\n';
-    gluLookAt(dist_cam*eye[0],dist_cam*eye[1],dist_cam*eye[2],0,0,0,up[0],up[1],up[2]);
-  
-  }
   // ubicamos la luz para que se transforme junto al espacio
   glLightfv(GL_LIGHT0,GL_POSITION,lpos); 
   
+  glPushMatrix();
+  
+  if (animado) {
+	  
+	if (top_view) {
+		gluLookAt(-15*eye[0],-15*eye[1],-15*eye[2],0,0,0,up[0],up[1],up[2]);
+    } else {
+		//ACA CAMBIÉ EL VECTOR NORMAL PARA PODER VER EL PEZ DE ARRIBA
+		gluLookAt(el_pez.x,el_pez.y,el_pez.z+15,el_pez.x,el_pez.y,el_pez.z,1,0,0);
+    }
+    
+  } else {
+    OSD << "Presione T o R para que el pez nade" << '\n';
+    gluLookAt(dist_cam*eye[0],dist_cam*eye[1],dist_cam*eye[2],0,0,0,up[0],up[1],up[2]);
+  }  
   /// AQUI ESTOY DIBUJANDO EL PEZ
+  if (el_pez.pezNada) malla->MoveMalla();
+  
   drawObjects(animado,relleno,curva,malla);
-//  drawObjects(animado,curva);
   glPopMatrix();
+  //glutSwapBuffers();
 
   #ifdef _DEBUG
     OSD << "el_pez {\n"
@@ -144,13 +185,11 @@ void Display_cb() { // Este tiene que estar
         << "  t: " << el_pez.t << '\n'
         << "}\n";
     OSD << "l.o.d.: " << lod<<'\n';
-  //  OSD << "escala: " << escala <<'\n';
     OSD << "vista: " << (animado?(top_view?"superior":"trasera"):"cubo") <<'\n';
   #endif
   
   glColor3f(1,1,1);
   OSD.Render(w,h);
-  
   glutSwapBuffers();
 
   #ifdef _DEBUG
@@ -173,8 +212,7 @@ void Display_cb() { // Este tiene que estar
   }
 
 //------------------------------------------------------------
-// Regenera la matriz de proyeccion
-// cuando cambia algun parametro de la vista
+// Regenera la matriz de proyeccion cuando cambia algun parametro de la vista
 void regen() {
   if (!dibuja) return;
 
@@ -195,22 +233,23 @@ void regen() {
 //------------------------------------------------------------
 // Animacion
 
-// Cuando no hay ningï¿½n otro evento se invoca   a glutIdleFunc 
+// Cuando no hay ningun otro evento se invoca a glutIdleFunc 
 // El "framerate" lo determina msec, a menos que la complejidad 
 // del modelo (lod) y la no aceleracion por hardware lo bajen
 void Idle_cb() {
   static int anterior=glutGet(GLUT_ELAPSED_TIME); // milisegundos desde que arranco
 
   int tiempo=glutGet(GLUT_ELAPSED_TIME), lapso=tiempo-anterior;
-  // esperar 1/60 segundos antes de pasar al prï¿½ximo cuadro
+  // esperar 1/60 segundos antes de pasar al proximo cuadro
   if (lapso<=16) { return; }
   
   anterior=tiempo;
   
   float acel = (+1)*keys[0] + (-1)*keys[1];
   float dir  = (+1)*keys[2] + (-1)*keys[3];
-  /// tenemos aca como se mueve el pez no es del todo funcional
+  // tenemos aca como se mueve el pez no es del todo funcional
   el_pez.Mover(curva);
+  
   
   glutPostRedisplay();
 }
@@ -335,6 +374,44 @@ void Keyboard_cb(unsigned char key,int x=0,int y=0) {
       if (!animado) Keyboard_cb('r',x,y);
       top_view=!top_view;
       break;
+	case 'o': case 'O': // movimiento
+	  curva.ocultar=!curva.ocultar;
+	  break;
+	case 'a': case 'A': // movimiento
+		el_pez.pezNada=!el_pez.pezNada;
+	  break;
+    case 'z': case 'Z': // movimiento
+	  el_pez.pezZigZaguea=!el_pez.pezZigZaguea;
+	  break;  
+	// >>>>>>>>>>>>>>>>>> cambio de curva <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	case '1': // Se genera curva1
+	  curvaN=1;
+	  while(curva.CantPuntos()!=0){
+		  curva.Quitar(0);
+	  }
+	  // cargo los puntos de control
+	  for (PuntosDeControl p: Curva1) 
+		  curva.Agregar(punto(p.x,p.y,p.z));
+	  break;
+	case '2': // Se genera curva2
+	  curvaN=2;
+	  while(curva.CantPuntos()!=0){
+		  curva.Quitar(0);
+	  }
+	  // cargo los puntos de control
+	  for (PuntosDeControl p: Curva2) 
+		  curva.Agregar(punto(p.x,p.y,p.z));
+	  break;
+	case '3': // Se genera curva3
+	  curvaN=3;
+	  while(curva.CantPuntos()!=0){
+		  curva.Quitar(0);
+	  }
+	  // cargo los puntos de control
+	  for (PuntosDeControl p: Curva3) 
+		  curva.Agregar(punto(p.x,p.y,p.z));
+	  break;
+	// >>>>>>>>>>>>>>>>>> EXIT <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     case 27: // escape => exit
       get_modifiers();
       if (!modifiers)
@@ -343,7 +420,6 @@ void Keyboard_cb(unsigned char key,int x=0,int y=0) {
     case '+': case '-': // lod
       if (key=='+') {
         lod++; 
-//        malla->Subdivide(); // subdivicon catmull para superficies
       }
       else {
         lod--; 
@@ -384,6 +460,24 @@ void Menu_cb(int value)
     case '-':
       Keyboard_cb('-');
       return;
+	case 'o':
+	  Keyboard_cb('o');
+	  return;
+	case 'a':
+	  Keyboard_cb('a');
+	  return;
+    case 'z':
+	  Keyboard_cb('z');
+	  return;  
+	case '1':
+	  Keyboard_cb('1');
+	  return;
+	case '2':
+	  Keyboard_cb('2');
+	  return;
+	case '3':
+	  Keyboard_cb('3');
+	  return;
     case 27: //esc
       exit(EXIT_SUCCESS);
   }
@@ -397,7 +491,7 @@ void initialize() {
 
   glutInitWindowSize(w,h); glutInitWindowPosition(50,50);
 
-  glutCreateWindow("Transformaciones-F1"); // crea el main window
+  glutCreateWindow("TP_FINAL_PEZ"); // crea el main window
 
   //declara los callbacks
   //los que no se usan no se declaran
@@ -412,10 +506,14 @@ void initialize() {
   // crea el menu
   glutCreateMenu(Menu_cb);
     glutAddMenuEntry("   [f]_Caras Rellenas        ", 'f');
+    glutAddMenuEntry("   [o]_Mostrar Curva         ", 'o');
     glutAddMenuEntry("   [r]_Anima                 ", 'r');
+    glutAddMenuEntry("   [a]_Pez nada              ", 'a');
+    glutAddMenuEntry("   [z]_Pez zigzagea          ", 'z');
     glutAddMenuEntry("   [t]_Vista Superior        ", 't');
-    glutAddMenuEntry("   [+]_+Nivel de Detalle     ", '+');
-    glutAddMenuEntry("   [-]_-Nivel de Detalle     ", '-');
+    glutAddMenuEntry("   [1]_Curva plana           ", '1');
+    glutAddMenuEntry("   [2]_Curva espiral         ", '2');
+    glutAddMenuEntry("   [3]_Curva random          ", '3');
     glutAddMenuEntry(" [Esc]_Exit                  ", 27);
   glutAttachMenu(GLUT_RIGHT_BUTTON);
 
@@ -448,27 +546,51 @@ void initialize() {
   glEnable(GL_LIGHT0);
   glShadeModel(GL_SMOOTH);
 
-  // material y textura
-  glEnable(GL_COLOR_MATERIAL);
+  /// ---------------------------------------------------------------------------------
+  ///								    MATERIAL Y TEXTURA
+  /// ---------------------------------------------------------------------------------
+  
+  // material estandar
+  float 
+	front_color[]={1.f,1.f,1.f,1.f},    // color de caras frontales
+	back_color[]={1.f,1.f,1.f,1.f},     // color de caras traseras
+	white[]={1.f,1.f,1.f,1.f};          // brillo blanco
+  glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,front_color);
+  glMaterialfv(GL_BACK,GL_AMBIENT_AND_DIFFUSE,back_color);
+  glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
+  glMateriali(GL_FRONT_AND_BACK,GL_SHININESS,127);
+  
+  // textura
+  bool cargando1=init_texture();
+  if(cargando1) cout<<"Paso la textura"<<endl;
+  glEnable(GL_TEXTURE_2D);
+  GLfloat plano_s[4] = {0, 0, 0.12, -0.4}; // s=x
+  GLfloat plano_t[4] = {0, 0.12, 0, 0}; // t=y
+  glTexGeni (GL_S, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+  glTexGenfv (GL_S, GL_OBJECT_PLANE, plano_s);
+  glEnable (GL_TEXTURE_GEN_S);
+  glTexGeni (GL_T, GL_TEXTURE_GEN_MODE, GL_OBJECT_LINEAR);
+  glTexGenfv (GL_T, GL_OBJECT_PLANE, plano_t);
+  glEnable (GL_TEXTURE_GEN_T);
+ 
   regen(); // para que setee las matrices antes del 1er draw
 
-  
   // cargo los puntos de control
-  for (PuntosDeControl p: puntosDados) 
-    curva.Agregar(punto(p.x,p.y,p.z));
-  // los primeros puntos 
-  el_pez.x = puntosDados[0].x;
-  el_pez.y = puntosDados[0].y;
-  el_pez.z = puntosDados[0].z;
+  for (PuntosDeControl p: Curva1) 
+	  curva.Agregar(punto(p.x,p.y,p.z));
   
+  // los primeros puntos 
+  el_pez.x = Curva1[0].x;
+  el_pez.y = Curva1[0].y;
+  el_pez.z = Curva1[0].z;
 }
 
 //------------------------------------------------------------
 // main
 int main(int argc,char** argv) {
   glutInit(&argc,argv);// inicializa glut
-//  malla = new Malla("cubo.dat");  
-  malla = new Malla("fish.dat");  
+//malla = new Malla("cubo.dat");  
+  malla = new Malla("pez.dat");  
   initialize(); // condiciones iniciales de la ventana y OpenGL
   glutMainLoop(); // entra en loop de reconocimiento de eventos
   return 0;

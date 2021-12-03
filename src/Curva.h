@@ -79,6 +79,7 @@ private:
 	float l[MAX_TRAMOS]; // longitud de cada tramo
 	float t[MAX_TRAMOS+1]; // valor parametro acumulado en cada punto interpolado (t[0]=0, t[np]=t_max)
 	int np; // cantidad de puntos interpolados
+	punto d; //derivada en el punto	
 	void ElevaGrado(int i); // para convertir las partes de grado 2 al equivalente grado 3
 	void Recalc(int i1, int i2); // recalcula todos los puntos entre los puntos interpolados i1 e i2
 	void Recalc(int i); // recalcula los puntos de control adicionales del i-ésimo tramo bezier
@@ -87,6 +88,7 @@ private:
 	float MaxT(); // devuelve el valor máximo al que llega el parametro t
 	punto Evaluar(int i, float ti); // evalua un tramo de bezier para un t dado y obtiene el pto
 	void Evaluar(int i, float ti, punto &x, punto &d); // evalua un tramo de bezier para un t dado y obtiene el pto y su derivada
+	
 public:
 	Spline();
 	int Agregar(punto x); // agrega un punto más a interpolar al final de la curva
@@ -100,6 +102,8 @@ public:
 	punto &operator[](int i); // devuelve uno de los puntos interpolados
 	float Longitud(); // devuelve una mala aproximación de la longitud de arco
 	int CantPuntos(); // devuelve la cantidad de puntos de control
+	punto VerDerivada();
+	bool ocultar=false;
 };
 
 #endif

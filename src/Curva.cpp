@@ -4,6 +4,9 @@
 # include <GL/gl.h>
 #endif
 #include "Curva.h"
+#include <iostream>
+using namespace std;
+
 
 
 Spline::Spline () {
@@ -65,7 +68,7 @@ int Spline::Cerca (punto x, float tol2) {
 	return -1;
 }
 
-void Spline::Evaluar (int i, float ti, punto & x, punto & d) {
+void Spline::Evaluar (int i, float ti, punto &x, punto &d) {
 	punto &p0=p[3*i], &p1=p[3*i+1], &p2=p[3*i+2], &p3=p[3*i+3];
 	float um_ti=1-ti;
 	punto p01=um_ti*p0+ti*p1;
@@ -88,7 +91,7 @@ punto Spline::Evaluar (int i, float ti) {
 	return um_ti*p012+ti*p123;
 }
 
-void Spline::Evaluar (float ti, punto & x, punto & d) {
+void Spline::Evaluar (float ti, punto &x, punto &d) {
 	// busqueda binaria para ver en que tramo cae
 	ti*=t[np-1];
 	int i0=0, iN=np-1, im;
@@ -126,7 +129,6 @@ float Spline::Longitud (int i) {
 	return a*(p[i3+3]-p[i3]).mod()+b*((p[i3+1]-p[i3]).mod()+(p[i3+2]-p[i3+1]).mod()+(p[i3+3]-p[i3+2]).mod());
 }
 
-
 void Spline::ElevaGrado (int i) {
 	punto d1=(p[3*i+1]-p[3*i])/2;
 	punto d2=(p[3*i+1]-p[3*i+3])/2;
@@ -135,26 +137,27 @@ void Spline::ElevaGrado (int i) {
 }
 
 void Spline::Dibujar (int detail, bool draw_cp) {
+	glDisable(GL_TEXTURE_2D);
 	glLineWidth(2); glColor4f(1,1,1,1);
-	
 	glEnable(GL_MAP1_VERTEX_4);
 	for (int i=0;i<np-1;i++){
 		glMap1f(GL_MAP1_VERTEX_4, 0.0, 1.0, 4, 4, (const float*)(&p[3*i]));
 		glMapGrid1f(detail,0,1); glEvalMesh1(GL_LINE,0,detail);
 	}
 	
-	if (draw_cp) {
+	if (draw_cp) { //para dibujar (o no) los puntos de control sobre la curva, mientras el pez esta nadando
 		glPointSize(5); glColor4f(.5,0,0,.5);
 		glBegin(GL_POINTS);
 			for (int i=3*np;i>=0;i--)
 				glVertex3fv(p[i].c);
 		glEnd();
-	}
-	glPointSize(10); glColor3f(.5,0,0);
-	glBegin(GL_POINTS);
+		
+		glPointSize(10); glColor3f(.5,0,0);
+		glBegin(GL_POINTS);
 		for (int i=0;i<np;i++)
 			glVertex3fv(p[i*3].c);
-	glEnd();
+		glEnd();
+	}
 }
 
 float Spline::MaxT ( ) {
@@ -181,4 +184,3 @@ float Spline::Longitud ( ) {
 int Spline::CantPuntos ( ) {
 	return np;
 }
-

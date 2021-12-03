@@ -130,6 +130,7 @@ typedef map<Arista,int> Mapa;
 // Malla guarda principalmente una lista de nodos y elementos
 struct Malla {
   vector<Nodo> p;
+  vector<Punto> pIdentity;
   vector<Elemento> e;
   vector<Punto> normal; // solo para iluminacion
   Malla(const char *fname=NULL);
@@ -147,6 +148,11 @@ struct Malla {
       n.toString();
     }
   }
+  // valores definidos para alterar el movimiento de la malla
+  float amplitud = 0.1;
+  float amplitudMax = 0.1;
+  float paso= -0.02;
+  void MoveMalla ();
 };
 
 #endif

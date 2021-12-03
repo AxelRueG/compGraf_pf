@@ -2,3 +2,8 @@
 tmp/
 *.zpr
 *.pdf
+
+*.png
+
+src/debug.lnx/
+src/debug.w32/
