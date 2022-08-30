@@ -32,20 +32,16 @@ void drawObjects(bool animado, bool relleno, Spline curva, Malla *malla) {
 	if (curva.ocultar) curva.Dibujar(10,false);  
     
 	glPushMatrix();
+//	constexpr float R2G = 180.f/3.141516; // radianes a grados
+//	float theta = el_pez.t*360;
 	glTranslatef(el_pez.x,el_pez.y,el_pez.z);
-
-	if(el_pez.pezZigZaguea){
-		constexpr float R2G = 180.f/3.141516; // radianes a grados
-		float theta = el_pez.t*360;
-		if (n<6.28){
-			glRotatef((0.3*(cos(n)))*R2G,1,0,1);
-			n+=0.1;
-			if(n>6.28){
-				n=0.f;
-			}
-		}
-	}
-	
+//	if (n<6.28){
+//		glRotatef((0.3*(cos(n)))*R2G,1,0,1);
+//		n+=0.1;
+//		if(n>6.28){
+//			n=0.f;
+//		}
+//	}
 	glRotatef(el_pez.ang_zx,0,1,0);
 	glRotatef(el_pez.ang_xy,0,0,1);
 	drawPez(relleno, malla);

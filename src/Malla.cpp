@@ -93,14 +93,13 @@ void Malla::MakeNormales() {
 
 void Malla::Draw(bool relleno) {
   // dibuja los Elementos
-//  glColor4f(1.f,1.f,1.f,0.f);
   unsigned int i;
-  if (relleno) {	
+  if (relleno) {
+    glEnable(GL_LIGHTING);
 	glEnable(GL_TEXTURE_2D);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glEnable(GL_LIGHTING);
-    glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+    //glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
   } else {
     glDisable(GL_LIGHTING);
     glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -160,7 +159,148 @@ void Malla::MakeVecinos() {
 }
 
 void Malla::Subdivide() {
-	cout<<"funcion inutilizada"<<endl;
+  
+  /// @@@@@: Implementar Catmull-Clark... lineamientos:
+  ///  0) Los nodos originales van de 0 a Nn-1, los elementos orignales de 0 a Ne-1
+  ///  1) Por cada elemento, agregar el centroide (nuevos nodos: Nn a Nn+Ne-1)
+  
+  int Ne = e.size(), // numero de elementos -> CARAS
+    Nn = p.size(); // numero de nodos
+  
+  for (Elemento elemento:e){ // recorremos los elementos
+    Nodo centroide; // tomamos el primer punto del elemento
+    for (int nodo=0; nodo<elemento.nv; nodo++){
+      centroide += p[elemento.n[nodo]]; // y sumamos el resto
+    }
+    centroide/=elemento.nv; // hacemos el promedio
+    p.push_back(centroide); // agregamos al vector de nodos;
+    /* 
+    NOTA: 
+    esto implica que el centroide del elemento e esta en su indice mas el Ne original,
+    que usaremos mas adelante
+    */
+  }
+  ///  2) Por cada arista de cada cara, agregar un pto en el medio que es
+  ///      promedio de los vertices de la arista y los centroides de las caras 
+  ///      adyacentes. Aca hay que usar los elementos vecinos.
+  ///      En los bordes, cuando no hay vecinos, es simplemente el promedio de los 
+  ///      vertices de la arista.
+  ///      Hay que evitar procesar dos veces la misma arista (como?)
+  ///      Mas adelante vamos a necesitar encontrar los puntos que agregamos para 
+  ///      cada arista, y ya que no se puede relacionar el indice de los nodos nuevos
+  ///      (la cantidad de aristas por nodo es variable), se sugiere usar Mapa como 
+  ///      estructura auxiliar
+  Mapa mapaAristas;
+  int ie = 0;
+  for (Elemento elem:e){    
+    for (int nArista = 0; nArista< elem.nv; nArista++) {
+      
+      Arista arista(elem.n[nArista],elem.n[(nArista+1)%elem.nv]); // creo una nueva arista
+      
+      if (mapaAristas.find(arista) == mapaAristas.end()){ // si la arista no esta en el mapa
+        Nodo centroide = (p[arista.n[0]]+p[arista.n[1]])/2; // promedio de los puntos;
+        
+        int n_vecinos = elem.v[nArista];
+        if (n_vecinos != -1) { // si tiene vecinos
+          // p[elem.v[nArista]+Nn] busca un centroide del elemento vecino
+          // p[ie+Nn] busca otro centroide del este elemento
+          // luego promedia el punto medio de la arista con el de los centroides
+          centroide = (centroide+(p[elem.v[nArista]+Nn]+p[ie+Nn])/2)/2;
+        }
+        p.push_back(centroide);
+        mapaAristas[arista] = p.size()-1;
+      } // fin end arista no calculada      
+    } // fin del recorrido de las arisrtas
+    ie++;
+  } // fin del for 
+  
+  ///  3) Armar los elementos nuevos
+  ///      Los quads se dividen en 4, (uno reemplaza al original, los otros 3 se agregan)
+  ///      Los triangulos se dividen en 3, (uno reemplaza al original, los otros 2 se agregan)
+  ///      Para encontrar los nodos de las aristas usar el mapa que armaron en el paso 2
+  ie = 0;
+  for (Elemento elem:e) {
+    
+    vector<int> punto_medio;
+    
+    for (int i=0; i<elem.nv; i++) {
+      Arista arista(elem.n[i],elem.n[(i+1)%elem.nv]);
+      punto_medio.push_back( mapaAristas[arista] );
+    }
+    
+    for (int i=0; i<elem.nv-2; i++){
+      // ie+Nn -> centroide de la cara ie
+      // punto_medio[i] -> el punto medio de la arista i
+      // elem.n[i+1] -> nodo i+1
+      // punto_medio[i+1] -> punto medio de la siguiente arista      
+      AgregarElemento(ie+Nn,punto_medio[i],elem.n[i+1],punto_medio[i+1]);
+    }
+    AgregarElemento(ie+Nn,punto_medio[elem.nv-1],elem.n[0],punto_medio[0]);//medio
+    ReemplazarElemento(ie,ie+Nn,punto_medio[elem.nv-2],elem.n[elem.nv-1],punto_medio[elem.nv-1]); //centroide   
+    
+    ie++;
+  }
+  
+  MakeVecinos(); // recalcula los vecinos
+  
+  ///  4) Calcular las nuevas posiciones de los nodos originales
+  ///      Para nodos interiores: (4r-f+(n-3)p)/n
+  ///         f=promedio de nodos interiores de las caras (los agregados en el paso 1)
+  ///         r=promedio de los pts medios de las aristas (los agregados en el paso 2)
+  ///         p=posicion del nodo original
+  ///         n=cantidad de elementos para ese nodo
+  ///      Para nodos del borde: (r+p)/2
+  ///         r=promedio de los dos pts medios de las aristas
+  ///         p=posicion del nodo original
+  ///      Ojo: en el paso 3 cambio toda la malla, analizar donde quedan en los nuevos 
+  ///      elementos (¿de que tipo son?) los nodos de las caras y los de las aristas 
+  ///      que se agregaron antes.
+  
+  // no = nodos originales
+  for (int no=0; no<Nn; no++) {//Recorro los nodos
+    //calculo de f,promedio de los centroides
+    Punto f,r,p1;
+    int cant=0;
+    
+    float n = p[no].e.size();
+    
+    if(p[no].es_frontera==true){//si el punto es frontera
+      
+      for (int i=0; i<n; i++){
+        Nodo pto_1 = p[e[p[no].e[i]].n[1]];
+        Nodo pto_2 = p[e[p[no].e[i]].n[3]];
+        
+        if (pto_1.es_frontera) r+=pto_1;
+        if (pto_2.es_frontera) r+=pto_2;
+      }
+      r=r/2;
+      p1=(r+p[no])/2; 
+    }else{//si el punto no es frontera
+      for (int i=0;i<n;i++){
+        f += p[e[p[no].e[i]].n[0]];
+        r += p[e[p[no].e[i]].n[1]];
+      }
+      f = f/n;
+      r = r/n;
+      p1 = (r*4-f+p[no]*(n-3))/n;
+    }  
+    p[no] = p1;
+  }
+  
+  MakeNormales(); // recalculo las normales
+  
+  /// tips:
+  ///   no es necesario cambiar ni agregar nada fuera de este método, (con Mapa como 
+  ///     estructura auxiliar alcanza)
+  ///   sugerencia: probar primero usando el cubo (es cerrado y solo tiene quads)
+  ///               despues usando la piramide (tambien cerrada, y solo triangulos)
+  ///               despues el ejemplo plano (para ver que pasa en los bordes)
+  ///               finalmente el mono (tiene mezcla y elementos sin vecinos)
+  ///   repaso de como usar un mapa:
+  ///     para asociar un indice (i) de nodo a una arista (n1-n2): elmapa[Arista(n1,n2)]=i;
+  ///     para saber si hay un indice asociado a una arista:  ¿elmapa.find(Arista(n1,n2))!=elmapa.end()?
+  ///     para recuperar el indice (en j) asociado a una arista: int j=elmapa[Arista(n1,n2)];
+  
 }
 /// >>>>>>>>>>>>>>>>>>>>>>>>>>>> Definimos el nado del pez <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 float parametrizeZ(float z) {
@@ -189,16 +329,9 @@ void Malla::MoveMalla() {
 		float t = parametrizeZ(p[i].x[2]);
 		float dir = amplitud*sin(t);
 		p[i].x[0] += dir;
-		if (p[i].x[2]< -1.5){ //para que la cola se mueva un 20% mas rapido
-			float t = parametrizeZ(p[i].x[2]);
-			float dir = amplitud*sin(1.2*t);
-			p[i].x[0] += dir;	
-		}
-		
 	}
 	
 	// modificamos la amplitud del seno
 	amplitud += paso;
 	if (abs(amplitud)>=amplitudMax) paso *=-1;  
-	MakeNormales();
 }

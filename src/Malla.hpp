@@ -149,9 +149,9 @@ struct Malla {
     }
   }
   // valores definidos para alterar el movimiento de la malla
-  float amplitud = 0.1;
-  float amplitudMax = 0.1;
-  float paso= -0.02;
+  float amplitud = 0.15;
+  float amplitudMax = 0.15;
+  float paso= -0.01;
   void MoveMalla ();
 };
 

@@ -23,56 +23,59 @@ Spline curva;
 punto d; //derivada
 bool ocultar = true;
 bool pezNada = true;
-int curvaN = 1; //para saber que curva se esta mostrando
 
 struct PuntosDeControl {
-  float x=0,y=0,z=0;
+  float x,y,z;
 };
 
-static PuntosDeControl Curva1[9] = {
-	{ 10.f,   0.f},
-	{  5.f,   5.f},
-	{  0.f,  10.f},
-	{ -5.f,   5.f},
-	{-10.f,   0.f},
-	{ -5.f,  -5.f},
-	{  0.f, -10.f},
-	{  5.f,  -5.f},
-	{ 10.f,   0.f}	
+static PuntosDeControl puntosDados[8] = {
+  {7.f,    4.f,   4.4},
+  {-7.6,   3.f,   2.2},
+  {6.f,   -2.5,  -8.5},
+  {-3.5,   9.2,   2.3},
+  {-8.1,  -1.f,  -4.4},
+  {1.f,   -8.3,   2.7},
+  {9.f,   -1.1,   1.1},
+  {7.f,    4.f,   4.4}
 };
-static PuntosDeControl Curva2[12] = {
-	{  0.f,   0.f,  1.f},
-	{ 10.f,   0.f,  2.f},
-	{  0.f,  10.f,  3.f},
-	{-10.f,   0.f,  4.f},
-	{  0.f, -10.f,  5.f},
-	{  0.f,   0.f,  6.f},
-	{ 10.f,   0.f,  7.f},
-	{  0.f,  10.f,  8.f},
-	{-10.f,   0.f,  9.f},
-	{  0.f, -10.f, 10.f},
-	{  0.f,   0.f, 11.f},
-	{ 10.f,   0.f, 12.f}
+/*
+static PuntosDeControl puntosXY[7] = {
+	{7.f,    4.f,  0},
+	{-7.6,   3.f,  0},
+	{6.f,   -2.5,  0},
+	{-3.5,   9.2,  0},
+	{-8.1,  -1.f,  0},
+	{1.f,   -8.3,  0},
+	{9.f,   -1.1,  0},
 };
-static PuntosDeControl Curva3[8] = {
-	{ 7.f,   4.f,   4.4},
-	{-7.6,   3.f,   2.2},
-	{ 6.f,  -2.5,  -8.5},
-	{-3.5,   9.2,   2.3},
-	{-8.1,  -1.f,  -4.4},
-	{ 1.f,  -8.3,   2.7},
-	{ 9.f,  -1.1,   1.1},
-	{ 7.f,   4.f,   4.4}
+static PuntosDeControl puntosXZ[8] = {
+	{9.f,   -1.1,  0},
+	{-7.6,  0,   2.2},
+	{6.f,   0,  -8.5},
+	{-3.5,  0,   2.3},
+	{-7.1,  0,  -4.4},
+	{1.f,   0,   2.7},
+	{8.f,   0,   1.1},
+	{7.f,   4.f,  0}
 };
 
-
+static PuntosDeControl MovimientoOndulatorioPez[7] = {
+	{ 0.f,   0.f,  0.f},
+	{ 1.f,   1.f,  0.f},
+	{ 2.f,  -1.f,  0.f},
+	{ 3.f,   1.f,  0.f},
+	{ 4.f,  -1.f,  0.f},
+	{ 5.f,   1.f,  0.f},
+	{ 6.f,   0.f,  0.f}
+};
+*/
 int
   w=800,h=600, // tama�o de la ventana
   boton=-1, // boton del mouse clickeado
   xclick,yclick, // x e y cuando clickeo un boton
   lod=10; // nivel de detalle (subdivisiones de lineas y superficies parametricas)
 float // luces y colores en float
-  lpos[]={2,15,10,0}, // posicion luz, l[4]: 0 => direccional -- 1 => posicional
+  lpos[]={2,10,5,0}, // posicion luz, l[4]: 0 => direccional -- 1 => posicional
   escala=125,escala0, // escala de los objetos window/modelo pixeles/unidad
   dist_cam=4, // distancia del ojo al origen de coordenadas en la manipulaci�n
   eye[]={.5,.5,.5}, target[]={0,0,0}, up[]={0,0,1}, // camara, mirando hacia y vertical
@@ -117,15 +120,13 @@ bool init_texture() {
 	//cout<<tex_pez.data<<endl;
 	if (!tex_pez.data) return ok=false;
 	
-	// color material
-	glColor3f(1.f,1.f,1.f);
-	
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	
+//	glEnable(GL_COLOR_MATERIAL);
 	glEnable(GL_TEXTURE_2D);
 	
 	return ok = true;
@@ -150,13 +151,10 @@ void Display_cb() { // Este tiene que estar
   glClear(GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT);
   glPolygonMode(GL_FRONT_AND_BACK,relleno?GL_FILL:GL_LINE);
   
-  // ubicamos la luz para que se transforme junto al espacio
-  glLightfv(GL_LIGHT0,GL_POSITION,lpos); 
-  
   glPushMatrix();
   
   if (animado) {
-	  
+    
 	if (top_view) {
 		gluLookAt(-15*eye[0],-15*eye[1],-15*eye[2],0,0,0,up[0],up[1],up[2]);
     } else {
@@ -167,9 +165,12 @@ void Display_cb() { // Este tiene que estar
   } else {
     OSD << "Presione T o R para que el pez nade" << '\n';
     gluLookAt(dist_cam*eye[0],dist_cam*eye[1],dist_cam*eye[2],0,0,0,up[0],up[1],up[2]);
-  }  
+  }
+  // ubicamos la luz para que se transforme junto al espacio
+  glLightfv(GL_LIGHT0,GL_POSITION,lpos); 
+  
   /// AQUI ESTOY DIBUJANDO EL PEZ
-  if (el_pez.pezNada) malla->MoveMalla();
+  if (pezNada) malla->MoveMalla();
   
   drawObjects(animado,relleno,curva,malla);
   glPopMatrix();
@@ -185,6 +186,7 @@ void Display_cb() { // Este tiene que estar
         << "  t: " << el_pez.t << '\n'
         << "}\n";
     OSD << "l.o.d.: " << lod<<'\n';
+  //  OSD << "escala: " << escala <<'\n';
     OSD << "vista: " << (animado?(top_view?"superior":"trasera"):"cubo") <<'\n';
   #endif
   
@@ -375,43 +377,10 @@ void Keyboard_cb(unsigned char key,int x=0,int y=0) {
       top_view=!top_view;
       break;
 	case 'o': case 'O': // movimiento
-	  curva.ocultar=!curva.ocultar;
+	  if(curva.ocultar){
+			curva.ocultar=false;
+	  }else curva.ocultar=true;
 	  break;
-	case 'a': case 'A': // movimiento
-		el_pez.pezNada=!el_pez.pezNada;
-	  break;
-    case 'z': case 'Z': // movimiento
-	  el_pez.pezZigZaguea=!el_pez.pezZigZaguea;
-	  break;  
-	// >>>>>>>>>>>>>>>>>> cambio de curva <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	case '1': // Se genera curva1
-	  curvaN=1;
-	  while(curva.CantPuntos()!=0){
-		  curva.Quitar(0);
-	  }
-	  // cargo los puntos de control
-	  for (PuntosDeControl p: Curva1) 
-		  curva.Agregar(punto(p.x,p.y,p.z));
-	  break;
-	case '2': // Se genera curva2
-	  curvaN=2;
-	  while(curva.CantPuntos()!=0){
-		  curva.Quitar(0);
-	  }
-	  // cargo los puntos de control
-	  for (PuntosDeControl p: Curva2) 
-		  curva.Agregar(punto(p.x,p.y,p.z));
-	  break;
-	case '3': // Se genera curva3
-	  curvaN=3;
-	  while(curva.CantPuntos()!=0){
-		  curva.Quitar(0);
-	  }
-	  // cargo los puntos de control
-	  for (PuntosDeControl p: Curva3) 
-		  curva.Agregar(punto(p.x,p.y,p.z));
-	  break;
-	// >>>>>>>>>>>>>>>>>> EXIT <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     case 27: // escape => exit
       get_modifiers();
       if (!modifiers)
@@ -420,6 +389,7 @@ void Keyboard_cb(unsigned char key,int x=0,int y=0) {
     case '+': case '-': // lod
       if (key=='+') {
         lod++; 
+//        malla->Subdivide(); // subdivicon catmull para superficies
       }
       else {
         lod--; 
@@ -463,21 +433,6 @@ void Menu_cb(int value)
 	case 'o':
 	  Keyboard_cb('o');
 	  return;
-	case 'a':
-	  Keyboard_cb('a');
-	  return;
-    case 'z':
-	  Keyboard_cb('z');
-	  return;  
-	case '1':
-	  Keyboard_cb('1');
-	  return;
-	case '2':
-	  Keyboard_cb('2');
-	  return;
-	case '3':
-	  Keyboard_cb('3');
-	  return;
     case 27: //esc
       exit(EXIT_SUCCESS);
   }
@@ -506,14 +461,10 @@ void initialize() {
   // crea el menu
   glutCreateMenu(Menu_cb);
     glutAddMenuEntry("   [f]_Caras Rellenas        ", 'f');
-    glutAddMenuEntry("   [o]_Mostrar Curva         ", 'o');
     glutAddMenuEntry("   [r]_Anima                 ", 'r');
-    glutAddMenuEntry("   [a]_Pez nada              ", 'a');
-    glutAddMenuEntry("   [z]_Pez zigzagea          ", 'z');
     glutAddMenuEntry("   [t]_Vista Superior        ", 't');
-    glutAddMenuEntry("   [1]_Curva plana           ", '1');
-    glutAddMenuEntry("   [2]_Curva espiral         ", '2');
-    glutAddMenuEntry("   [3]_Curva random          ", '3');
+    glutAddMenuEntry("   [+]_+Nivel de Detalle     ", '+');
+    glutAddMenuEntry("   [-]_-Nivel de Detalle     ", '-');
     glutAddMenuEntry(" [Esc]_Exit                  ", 27);
   glutAttachMenu(GLUT_RIGHT_BUTTON);
 
@@ -549,20 +500,10 @@ void initialize() {
   /// ---------------------------------------------------------------------------------
   ///								    MATERIAL Y TEXTURA
   /// ---------------------------------------------------------------------------------
+  //glEnable(GL_COLOR_MATERIAL);
   
-  // material estandar
-  float 
-	front_color[]={1.f,1.f,1.f,1.f},    // color de caras frontales
-	back_color[]={1.f,1.f,1.f,1.f},     // color de caras traseras
-	white[]={1.f,1.f,1.f,1.f};          // brillo blanco
-  glMaterialfv(GL_FRONT,GL_AMBIENT_AND_DIFFUSE,front_color);
-  glMaterialfv(GL_BACK,GL_AMBIENT_AND_DIFFUSE,back_color);
-  glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
-  glMateriali(GL_FRONT_AND_BACK,GL_SHININESS,127);
-  
-  // textura
   bool cargando1=init_texture();
-  if(cargando1) cout<<"Paso la textura"<<endl;
+  //if(cargando1) cout<<"Paso la textura"<<endl;
   glEnable(GL_TEXTURE_2D);
   GLfloat plano_s[4] = {0, 0, 0.12, -0.4}; // s=x
   GLfloat plano_t[4] = {0, 0.12, 0, 0}; // t=y
@@ -576,13 +517,21 @@ void initialize() {
   regen(); // para que setee las matrices antes del 1er draw
 
   // cargo los puntos de control
-  for (PuntosDeControl p: Curva1) 
-	  curva.Agregar(punto(p.x,p.y,p.z));
+  for (PuntosDeControl p: puntosDados) 
+    curva.Agregar(punto(p.x,p.y,p.z));
   
   // los primeros puntos 
-  el_pez.x = Curva1[0].x;
-  el_pez.y = Curva1[0].y;
-  el_pez.z = Curva1[0].z;
+  el_pez.x = puntosDados[0].x;
+  el_pez.y = puntosDados[0].y;
+  el_pez.z = puntosDados[0].z;
+  
+  //for (PuntosDeControl p: MovimientoOndulatorioPez) 
+	//  curva.Agregar(punto(p.x,p.y,p.z));
+  
+  // los primeros puntos 
+  //el_pez.x = MovimientoOndulatorioPez[0].x;
+  //el_pez.y = MovimientoOndulatorioPez[0].y;
+  //el_pez.z = MovimientoOndulatorioPez[0].z;
 }
 
 //------------------------------------------------------------

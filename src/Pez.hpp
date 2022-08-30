@@ -5,9 +5,6 @@
 using namespace std;
 
 struct Pez {
-  bool pezNada = true;
-  bool pezZigZaguea = true;
-	
   float t = 0; // tiempo en el que se encuentra el pez
   float t_paso = 0.001;
   float ang_xy = 0; // orientacion en el plano xy
